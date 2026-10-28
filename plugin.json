@@ -1,0 +1,17 @@
+{
+  "name": "PS5 Updates",
+  "author": "cmartinespinosa",
+  "flags": [
+    "root"
+  ],
+  "api_version": 1,
+  "publish": {
+    "tags": [
+      "root",
+      "ps5",
+      "bazzite"
+    ],
+    "description": "Checks PS5 Bazzite Deck releases, shows the notes, and installs an update then powers off.",
+    "image": ""
+  }
+}
