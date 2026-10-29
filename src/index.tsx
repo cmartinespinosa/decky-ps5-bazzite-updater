@@ -13,6 +13,7 @@ import {
 import { addEventListener, callable, definePlugin, removeEventListener, toaster } from "@decky/api";
 import { useEffect, useState } from "react";
 import { FaSyncAlt } from "react-icons/fa";
+import { t } from "./i18n";
 
 type Release = { tag: string; name: string; published: string | null; body: string; url: string; prerelease: boolean };
 type Status = { installed: string; stable?: Release | null; pre?: Release | null; error?: string };
@@ -41,14 +42,14 @@ function useStore() {
 
 async function check(notify: boolean) {
   set({ checking: true });
-  const status = await getStatus().catch(() => ({ installed: "?", error: "Backend error" }) as Status);
+  const status = await getStatus().catch(() => ({ installed: "?", error: t("Backend error") }) as Status);
   set({ status, checkedAt: new Date(), checking: false });
   const newest = status.pre ?? status.stable;
   if (notify && newest && newest.tag !== status.installed) {
     let seen: string | null = null;
     try { seen = localStorage.getItem("ps5-updates-notified"); } catch {}
     if (seen !== newest.tag) {
-      toaster.toast({ title: "PS5 Updates", body: `${newest.tag} available${newest.prerelease ? " (pre-release)" : ""}` });
+      toaster.toast({ title: t("PS5 Updates"), body: t("{{tag}} available{{prerelease}}", { tag: newest.tag, prerelease: newest.prerelease ? t(" (pre-release)") : "" }) });
       try { localStorage.setItem("ps5-updates-notified", newest.tag); } catch {}
     }
   }
@@ -62,10 +63,10 @@ async function startUpdate(r: Release) {
   const result = await runUpdate(r.tag).catch((e) => ({ ok: false, error: String(e) }));
   set({ updating: undefined, result });
   if (!result.ok) {
-    toaster.toast({ title: "PS5 Updates", body: `Update failed: ${result.error}` });
+    toaster.toast({ title: t("PS5 Updates"), body: t("Update failed: {{error}}", { error: result.error ?? "" }) });
     return;
   }
-  toaster.toast({ title: "PS5 Updates", body: `${r.tag} installed. Powering off in ${POWEROFF_DELAY_S} s` });
+  toaster.toast({ title: t("PS5 Updates"), body: t("{{tag}} installed. Powering off in {{seconds}} s", { tag: r.tag, seconds: POWEROFF_DELAY_S }) });
   set({ countdown: POWEROFF_DELAY_S });
   timer = setInterval(() => {
     const left = (state.countdown ?? 0) - 1;
@@ -78,14 +79,13 @@ async function startUpdate(r: Release) {
 function confirmUpdate(r: Release) {
   showModal(
     <ConfirmModal
-      strTitle={`Update to ${r.tag}?`}
+      strTitle={t("Update to {{tag}}?", { tag: r.tag })}
       strDescription={
-        "Installs the new kernel (with a backup) and powers off the PS5. " +
-        "Then turn it on and start Linux with the loader." +
-        (r.prerelease ? " This is a pre-release (test build)." : "")
+        t("Installs the new kernel (with a backup) and powers off the PS5. Then turn it on and start Linux with the loader.") +
+        (r.prerelease ? t(" This is a pre-release (test build).") : "")
       }
-      strOKButtonText="Continue"
-      strCancelButtonText="Cancel"
+      strOKButtonText={t("Continue")}
+      strCancelButtonText={t("Cancel")}
       onOK={() => startUpdate(r)}
     />,
   );
@@ -114,13 +114,13 @@ function showNotes(r: Release, installed: string) {
         <div style={{ fontSize: "20px", fontWeight: "bold" }}>{r.name}</div>
         <Badge pre={r.prerelease} />
       </div>
-      <div style={{ opacity: 0.7, marginBottom: "8px" }}>{ago(r.published)} · you have {installed}</div>
+      <div style={{ opacity: 0.7, marginBottom: "8px" }}>{ago(r.published)} · {t("Installed:")} {installed}</div>
       <div style={{ maxHeight: "55vh", overflowY: "auto" }}><Notes body={r.body} /></div>
       <Focusable style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-        <DialogButton onClick={() => modal.Close()}>Close</DialogButton>
-        <DialogButton onClick={() => { modal.Close(); Navigation.NavigateToExternalWeb(r.url); }}>Open on GitHub</DialogButton>
+        <DialogButton onClick={() => modal.Close()}>{t("Close")}</DialogButton>
+        <DialogButton onClick={() => { modal.Close(); Navigation.NavigateToExternalWeb(r.url); }}>{t("Open on GitHub")}</DialogButton>
         {r.tag !== installed && (
-          <DialogButton onClick={() => { modal.Close(); confirmUpdate(r); }}>Update and power off</DialogButton>
+          <DialogButton onClick={() => { modal.Close(); confirmUpdate(r); }}>{t("Update and power off")}</DialogButton>
         )}
       </Focusable>
     </ModalRoot>,
@@ -130,7 +130,7 @@ function showNotes(r: Release, installed: string) {
 function ago(iso: string | null) {
   if (!iso) return "";
   const h = Math.round((Date.now() - new Date(iso).getTime()) / 3.6e6);
-  return h < 1 ? "just now" : h < 48 ? `${h} h ago` : `${Math.round(h / 24)} days ago`;
+  return h < 1 ? t("just now") : h < 48 ? t("{{hours}} h ago", { hours: h }) : t("{{days}} days ago", { days: Math.round(h / 24) });
 }
 
 function Badge({ pre }: { pre: boolean }) {
@@ -138,7 +138,7 @@ function Badge({ pre }: { pre: boolean }) {
     <span style={{
       fontSize: "11px", padding: "1px 8px", borderRadius: "4px",
       background: pre ? "rgba(239,159,39,0.25)" : "rgba(99,153,34,0.3)", color: pre ? "#FAC775" : "#C0DD97",
-    }}>{pre ? "Pre-release" : "Stable"}</span>
+    }}>{pre ? t("Pre-release") : t("Stable")}</span>
   );
 }
 
@@ -153,10 +153,10 @@ function ReleaseCard({ r, installed }: { r: Release; installed: string }) {
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <b>{r.tag}</b><Badge pre={r.prerelease} />
         </div>
-        <div style={{ opacity: 0.7, fontSize: "12px" }}>{current ? "Up to date" : `${ago(r.published)} · ${r.name.replace(/^v[\d.]+\s*[–-]\s*/, "")}`}</div>
+        <div style={{ opacity: 0.7, fontSize: "12px" }}>{current ? t("Up to date") : `${ago(r.published)} · ${r.name.replace(/^v[\d.]+\s*[–-]\s*/, "")}`}</div>
       </div>
-      <ButtonItem layout="below" onClick={() => showNotes(r, installed)}>Release notes</ButtonItem>
-      {!current && <ButtonItem layout="below" disabled={!!state.updating} onClick={() => confirmUpdate(r)}>Install and power off</ButtonItem>}
+      <ButtonItem layout="below" onClick={() => showNotes(r, installed)}>{t("Release notes")}</ButtonItem>
+      {!current && <ButtonItem layout="below" disabled={!!state.updating} onClick={() => confirmUpdate(r)}>{t("Install and power off")}</ButtonItem>}
     </PanelSectionRow>
   );
 }
@@ -167,23 +167,23 @@ function Content() {
 
   if (s.updating || s.countdown !== undefined || s.result) {
     return (
-      <PanelSection title={s.updating ? `Updating to ${s.updating}` : "Update"}>
+      <PanelSection title={s.updating ? t("Updating to {{tag}}", { tag: s.updating }) : t("Update")}>
         <PanelSectionRow>
           <div style={{ fontSize: "11px", fontFamily: "monospace", whiteSpace: "pre-wrap", maxHeight: "240px", overflowY: "auto" }}>
             {(s.result && !s.result.ok ? (s.result.log ?? "") : s.log.slice(-12).join("\n"))}
           </div>
         </PanelSectionRow>
         {s.result && !s.result.ok && (
-          <PanelSectionRow><div style={{ color: "#F09595" }}>{s.result.error} The PS5 stays on.</div></PanelSectionRow>
+          <PanelSectionRow><div style={{ color: "#F09595" }}>{s.result.error} {t("The PS5 stays on.")}</div></PanelSectionRow>
         )}
         {s.countdown !== undefined && (
           <PanelSectionRow>
-            <ButtonItem layout="below" onClick={cancelPowerOff}>Cancel power off ({s.countdown} s)</ButtonItem>
+            <ButtonItem layout="below" onClick={cancelPowerOff}>{t("Cancel power off ({{seconds}} s)", { seconds: s.countdown })}</ButtonItem>
           </PanelSectionRow>
         )}
         {s.result && s.countdown === undefined && (
           <PanelSectionRow>
-            <ButtonItem layout="below" onClick={() => { set({ result: undefined }); check(false); }}>Back</ButtonItem>
+            <ButtonItem layout="below" onClick={() => { set({ result: undefined }); check(false); }}>{t("Back")}</ButtonItem>
           </PanelSectionRow>
         )}
       </PanelSection>
@@ -193,19 +193,19 @@ function Content() {
   return (
     <PanelSection>
       <PanelSectionRow>
-        <div style={{ opacity: 0.8 }}>Installed: <b>{st?.installed ?? "…"}</b></div>
+        <div style={{ opacity: 0.8 }}>{t("Installed:")} <b>{st?.installed ?? "…"}</b></div>
       </PanelSectionRow>
       {st?.error && <PanelSectionRow><div style={{ color: "#F09595" }}>{st.error}</div></PanelSectionRow>}
       {st?.stable && <ReleaseCard r={st.stable} installed={st.installed} />}
       {st?.pre && <ReleaseCard r={st.pre} installed={st.installed} />}
       <PanelSectionRow>
         <ButtonItem layout="below" disabled={s.checking} onClick={() => check(false)}>
-          {s.checking ? "Checking…" : "Check now"}
+          {s.checking ? t("Checking…") : t("Check now")}
         </ButtonItem>
       </PanelSectionRow>
       {s.checkedAt && (
         <PanelSectionRow>
-          <div style={{ opacity: 0.6, fontSize: "11px" }}>Checked at {s.checkedAt.toLocaleTimeString().slice(0, 5)}</div>
+          <div style={{ opacity: 0.6, fontSize: "11px" }}>{t("Checked at {{time}}", { time: s.checkedAt.toLocaleTimeString().slice(0, 5) })}</div>
         </PanelSectionRow>
       )}
     </PanelSection>
@@ -218,8 +218,8 @@ export default definePlugin(() => {
   const interval = setInterval(() => check(true), CHECK_EVERY_MS);
 
   return {
-    name: "PS5 Updates",
-    titleView: <div className={staticClasses.Title}>PS5 Updates</div>,
+    name: t("PS5 Updates"),
+    titleView: <div className={staticClasses.Title}>{t("PS5 Updates")}</div>,
     content: <Content />,
     icon: <FaSyncAlt />,
     onDismount() {
