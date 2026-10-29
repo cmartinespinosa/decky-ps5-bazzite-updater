@@ -79,6 +79,14 @@ The plugin is `plugin.json`, `package.json`, `main.py`, `LICENSE` and `dist/inde
 
 Tested on a base PS5 with PS5 Bazzite Deck v1.5.1: the plugin loads and reads the releases from GitHub. The full install-and-power-off flow runs the project's own update script, but hasn't been tried end to end through the plugin yet. Please open an issue if it fails for you.
 
+## Translations
+
+The plugin follows the language exposed by Decky's browser UI. English source
+texts are the built-in fallback and Swedish is included. To add another
+language, add its ISO language code and translations to `catalogs` in
+`src/i18n.ts`; no component changes or external translation service are
+required.
+
 ## Credits
 
 - [VivaLaVent/ps5-bazzite-deck](https://github.com/VivaLaVent/ps5-bazzite-deck) for the distro and its update bundles.
