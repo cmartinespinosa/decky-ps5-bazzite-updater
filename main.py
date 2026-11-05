@@ -9,7 +9,8 @@ import decky
 
 REPO = "VivaLaVent/ps5-bazzite-deck"
 VERSION_FILE = "/etc/ps5-bazzite-deck-version"
-TAG_RE = re.compile(r"^v\d+\.\d+\.\d+[A-Za-z0-9.-]*$")
+# vX.Y or vX.Y.Z (v2.5 is a stable release), optionally with a suffix
+TAG_RE = re.compile(r"^v\d+\.\d+(\.\d+)?[A-Za-z0-9.-]*$")
 
 
 def _env():
